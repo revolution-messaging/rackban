@@ -18,7 +18,9 @@ Setup
 Testing
 --------------
 Once you've completed step 1 above, you can simple run the following to test your configuration
+
     php /path/to/rackban.php ban 192.168.1.1
+    
 Make sure the IP doesn't match anything currently on your network!
 
 A 'Failure!' response typically means the IP or command is wrong. An exception means your credentials are likely wrong.
