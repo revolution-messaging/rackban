@@ -63,8 +63,10 @@ class Rackban {
             
             // A 200/202 HTTP code verfies the addition of the IP anything else is a failure
             if (!in_array(curl_getinfo($ch, CURLINFO_HTTP_CODE), array(200, 202))) {
-                error_log('Failed to ban IP:'.$ip.' on load balancer:'.$loadBalancer);
+                echo 'Failed to ban IP:'.$ip.' on load balancer:'.$loadBalancer;
                 $result = false;
+            } else {
+                echo 'Banned IP:'.$ip.' on load balancer:'.$loadBalancer;
             }
         }
         
@@ -137,6 +139,8 @@ class Rackban {
                         // fail if one of the load balancers is still banning the IP
                         echo 'Failed to unban IP:'.$ip.' on load balancer:'.$loadBalancer."\n";
                         $result = false;
+                    } else {
+                        echo 'Unbanned IP:'.$ip.' on load balancer:'.$loadBalancer."\n";
                     }
                 }
             }
