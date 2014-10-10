@@ -100,16 +100,16 @@ class Rackban {
             
             if (!$result) {
                 // cURL command failed
-                error_log('Failed to curl ACL for load balancer: '.$loadBalancer);
+                echo 'Failed to curl ACL for load balancer: '.$loadBalancer."\n";
             } else {
                 try {
                     $resultJson = json_decode($result);
                 } catch(Exception $e) {
-                    error_log('JSON decode of access list for load balancer '.$loadBalancer.' threw error: '.$e->message);
+                    echo 'JSON decode of access list for load balancer '.$loadBalancer.' threw error: '.$e->message."\n";
                 }
                 if (!$resultJson || !isset($resultJson->accessList)) {
                     // No access list or JSON data found
-                    error_log('Failed to decode JSON ACL for load balancer: '.$loadBalancer);
+                    echo 'Failed to decode JSON ACL for load balancer: '.$loadBalancer."\n";
                 } else {
                     $acls[$loadBalancer] = $resultJson->accessList;
                 }
@@ -135,7 +135,7 @@ class Rackban {
                     // A 200/202 HTTP code verfies the deletion of the IP anything else is a failure
                     if (!in_array(curl_getinfo($ch, CURLINFO_HTTP_CODE), array(200, 202))) {
                         // fail if one of the load balancers is still banning the IP
-                        error_log('Failed to unban IP:'.$ip.' on load balancer:'.$loadBalancer);
+                        echo 'Failed to unban IP:'.$ip.' on load balancer:'.$loadBalancer."\n";
                         $result = false;
                     }
                 }
