@@ -20,7 +20,7 @@ class Rackban {
     private $apiKey = "kh45kh345k34k345h3k45h";
     
     // Your Rackspace load balancer ID
-    private $loadBalancer = "123456";
+    private $loadBalancer = array("123456");
     
     // Your Racspace region (ord, dfw, iad, lon, syd, hkg)
     private $region = "lon";
@@ -51,16 +51,24 @@ class Rackban {
                 'address' => $ip,
                 'type' => 'DENY'
         ))));
-
-        // Do request
-        curl_exec($ch);
         
-        // A 200/202 HTTP code verfies the addition of the IP anything else is a failure
-        if (in_array(curl_getinfo($ch, CURLINFO_HTTP_CODE), array(200, 202))) {
-            return true;
+        $result = true;
+        
+        foreach($this->loadBalancer as $loadBalancer) {
+            // Set the defualt url
+            curl_setopt($ch, CURLOPT_URL, "https://{$this->region}.loadbalancers.api.rackspacecloud.com/v1.0/{$this->accountId}/loadbalancers/{$loadBalancer}/accesslist");
+            
+            // Do request
+            curl_exec($ch);
+            
+            // A 200/202 HTTP code verfies the addition of the IP anything else is a failure
+            if (!in_array(curl_getinfo($ch, CURLINFO_HTTP_CODE), array(200, 202))) {
+                error_log('Failed to ban IP:'.$ip.' on load balancer:'.$loadBalancer);
+                $result = false;
+            }
         }
-
-        return false;
+        
+        return $result;
     }
 
     /*
@@ -74,65 +82,76 @@ class Rackban {
         if (!$this->token && !$this->getToken()) {
             throw new Exception("Failed to get token");
         }
-
+        
         // Grab a preconfigured cURL client
         $ch = $this->getCurlClient();
-
-        // Set POST to true
+        
+        // Set CURLOPT_POST to false
         curl_setopt($ch, CURLOPT_POST, false);
-
-        // Do request
-        $result = curl_exec($ch);
-
-        if (!$result) {
-            // cURL command failed
-            return false;
-        }
         
-        // Decode the received JSON data
-        $resultJson = json_decode($result);
+        $acls = array();
         
-        if (!$resultJson || !isset($resultJson->accessList)) {
-            // No access list or JSON data found
-            return false;
-        }
-        
-        // Loop through each item in the access list
-        foreach ($resultJson->accessList as $listing) {
-            // Match the accessList item with the requested IP
-            if ($listing->address == $ip) {
-                
-                // Change URL to define the accessList ID
-                curl_setopt($ch, CURLOPT_URL, "https://{$this->region}.loadbalancers.api.rackspacecloud.com/v1.0/{$this->accountId}/loadbalancers/{$this->loadBalancer}/accesslist/{$listing->id}");
-                
-                // Change request to DELETE
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
-                
-                // Execute the command
-                curl_exec($ch);
-
-                // A 200/202 HTTP code verfies the deletion of the IP anything else is a failure
-                if (in_array(curl_getinfo($ch, CURLINFO_HTTP_CODE), array(200, 202))) {
-                    return true;
+        foreach($this->loadBalancer as $loadBalancer) {
+            // Set the defualt url
+            curl_setopt($ch, CURLOPT_URL, "https://{$this->region}.loadbalancers.api.rackspacecloud.com/v1.0/{$this->accountId}/loadbalancers/{$loadBalancer}/accesslist");
+            
+            // Do request
+            $result = curl_exec($ch);
+            
+            if (!$result) {
+                // cURL command failed
+                error_log('Failed to curl ACL for load balancer: '.$loadBalancer);
+            } else {
+                try {
+                    $resultJson = json_decode($result);
+                } catch(Exception $e) {
+                    error_log('JSON decode of access list for load balancer '.$loadBalancer.' threw error: '.$e->message);
+                }
+                if (!$resultJson || !isset($resultJson->accessList)) {
+                    // No access list or JSON data found
+                    error_log('Failed to decode JSON ACL for load balancer: '.$loadBalancer);
+                } else {
+                    $acls[$loadBalancer] = $resultJson->accessList;
                 }
             }
         }
         
+        $result = true;
         
-
-        return false;
+        foreach($acls as $loadBalancer => $acl) {
+            // Loop through each item in the access list
+            foreach ($acl as $listing) {
+                // Match the accessList item with the requested IP
+                if ($listing->address == $ip) {
+                    // Change URL to define the accessList ID
+                    curl_setopt($ch, CURLOPT_URL, "https://{$this->region}.loadbalancers.api.rackspacecloud.com/v1.0/{$this->accountId}/loadbalancers/{$loadBalancer}/accesslist/{$listing->id}");
+                    
+                    // Change request to DELETE
+                    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
+                    
+                    // Execute the command
+                    curl_exec($ch);
+                    
+                    // A 200/202 HTTP code verfies the deletion of the IP anything else is a failure
+                    if (!in_array(curl_getinfo($ch, CURLINFO_HTTP_CODE), array(200, 202))) {
+                        // fail if one of the load balancers is still banning the IP
+                        error_log('Failed to unban IP:'.$ip.' on load balancer:'.$loadBalancer);
+                        $result = false;
+                    }
+                }
+            }
+        }
+        
+        return $result;
     }
 
-    private function getCurlClient() {
+    private function getCurlClient($loadBalancer) {
         
         // Define a cURL client
         $ch = curl_init();
 
         // Will return the response, if false it print the response
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-        // Set the defualt url
-        curl_setopt($ch, CURLOPT_URL, "https://{$this->region}.loadbalancers.api.rackspacecloud.com/v1.0/{$this->accountId}/loadbalancers/{$this->loadBalancer}/accesslist");
 
         // Will this be an authenticated request?
         if ($this->token) {
