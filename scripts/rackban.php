@@ -145,8 +145,7 @@ class Rackban {
         return $result;
     }
 
-    private function getCurlClient($loadBalancer) {
-        
+    private function getCurlClient() {
         // Define a cURL client
         $ch = curl_init();
 
