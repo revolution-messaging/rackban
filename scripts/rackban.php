@@ -25,6 +25,8 @@ class Rackban {
     // Your Racspace region (ord, dfw, iad, lon, syd, hkg)
     private $region = "lon";
     
+    private $debug = false;
+    
     // No need to edit the below
     private $token = false;
     private $curlHeader = array(
@@ -66,7 +68,8 @@ class Rackban {
                 echo 'Failed to ban IP:'.$ip.' on load balancer:'.$loadBalancer;
                 $result = false;
             } else {
-                echo 'Banned IP:'.$ip.' on load balancer:'.$loadBalancer;
+                if($this->debug)
+                    echo 'Banned IP:'.$ip.' on load balancer:'.$loadBalancer;
             }
         }
         
@@ -140,7 +143,8 @@ class Rackban {
                         echo 'Failed to unban IP:'.$ip.' on load balancer:'.$loadBalancer."\n";
                         $result = false;
                     } else {
-                        echo 'Unbanned IP:'.$ip.' on load balancer:'.$loadBalancer."\n";
+                        if($this->debug)
+                            echo 'Unbanned IP:'.$ip.' on load balancer:'.$loadBalancer."\n";
                     }
                 }
             }
