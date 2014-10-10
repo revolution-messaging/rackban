@@ -65,11 +65,11 @@ class Rackban {
             
             // A 200/202 HTTP code verfies the addition of the IP anything else is a failure
             if (!in_array(curl_getinfo($ch, CURLINFO_HTTP_CODE), array(200, 202))) {
-                echo 'Failed to ban IP:'.$ip.' on load balancer:'.$loadBalancer;
+                echo 'Failed to ban IP:'.$ip.' on load balancer:'.$loadBalancer."\n";
                 $result = false;
             } else {
                 if($this->debug)
-                    echo 'Banned IP:'.$ip.' on load balancer:'.$loadBalancer;
+                    echo 'Banned IP:'.$ip.' on load balancer:'.$loadBalancer."\n";
             }
         }
         
